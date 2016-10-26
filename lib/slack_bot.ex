@@ -1,0 +1,2 @@
+defmodule SlackBot do
+end
