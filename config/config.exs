@@ -28,3 +28,10 @@ use Mix.Config
 # here (which is why it is important to import them last).
 #
 #     import_config "#{Mix.env}.exs"
+
+# Write API Token to secret.exs.
+#
+# use Mix.Config
+# config :slack_bot, token: :"<api_token>"
+
+import_config "secret.exs"
