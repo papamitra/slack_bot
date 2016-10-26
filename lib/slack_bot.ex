@@ -14,7 +14,7 @@ defmodule SlackBot do
 
   defp add_proxy_opt(acc) do
     https_proxy = System.get_env("https_proxy")
-    case  https_proxy |> URI.parse do
+    case  (https_proxy || "") |> URI.parse do
       %URI{host: proxy_host} when not is_nil(proxy_host) ->
         [{:proxy, https_proxy} | acc]
       _ ->
