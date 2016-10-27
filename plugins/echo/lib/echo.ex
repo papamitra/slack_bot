@@ -18,8 +18,12 @@ defmodule SlackBot.Plugin.Echo do
   end
 
   def dispatch_command(pid, :echo, args, msg) do
-    IO.puts "Echo: handle_text"
-    IO.puts args
+    GenServer.cast(pid, {:send, args, msg})
+  end
+
+  def handle_cast({:send, args, msg}, %{parent: parent} = state) do
+    SlackBot.send_message(parent, args, Map.get(msg, "channel"))
+    {:noreply, state}
   end
 
 end

@@ -1,5 +1,5 @@
 defmodule SlackBot do
-  use WebsocketClient
+  use GenServer
 
   require Logger
 
@@ -12,7 +12,7 @@ defmodule SlackBot do
 
     %{"url" => url} = team_state
 
-    WebsocketClient.start_link(__MODULE__, url, team_state)
+    GenServer.start_link(__MODULE__, [url, team_state])
   end
 
   def send_message(pid, msg, channel) do
@@ -21,7 +21,7 @@ defmodule SlackBot do
 
   # callback function
 
-  def init(team_state) do
+  def init([url, team_state]) do
     plugins = Enum.map(Application.get_env(:slack_bot, :plugins), fn %{path: path, mod: mod} ->
       try do
         Code.append_path(path)
@@ -36,10 +36,12 @@ defmodule SlackBot do
       end
     end) |> Enum.filter(fn x -> not is_nil(x) end)
 
-    {:ok, %{plugins: plugins, team_state: team_state, last_id: 0}}
+    {:ok, websocket} = WebsocketClient.start_link(self, url)
+
+    {:ok, %{plugins: plugins, websocket: websocket, team_state: team_state, last_id: 0}}
   end
 
-  def handle_text(text, %{plugins: plugins, team_state: team_state} = state) do
+  def handle_info({:recv_text, text}, %{plugins: plugins, team_state: team_state} = state) do
     message = Poison.decode!(text)
 
     case valid_command?(message, team_state) do
@@ -59,11 +61,12 @@ defmodule SlackBot do
         :noop
     end
 
-    {:ok, state}
+    {:noreply, state}
   end
 
-  def handle_cast({:send, msg, channel}, _from, %{last_id: last_id} = state) do
-    WebsocketClient.send(self, Poison.encode!(%{id: last_id + 1, type: "message", text: msg, channel: channel}))
+  def handle_cast({:send, msg, channel}, %{websocket: websocket, last_id: last_id} = state) do
+    payload = Poison.encode!(%{id: last_id + 1, type: "message", text: msg, channel: channel})
+    websocket |> WebsocketClient.send({:text, payload})
 
     {:noreply, %{state | last_id: last_id + 1}}
   end
@@ -93,7 +96,7 @@ defmodule SlackBot do
          {:ok, channel} <- Map.fetch(message, "channel"),
          {:ok, text} <- Map.fetch(message, "text"),
          %{"cmd" => cmd, "args" => args} <-
-           Regex.named_captures(~r/<@#{self_id}> (?<cmd>\w+)(?<args>.*)/, text),
+           Regex.named_captures(~r/<@#{self_id}> (?<cmd>\w+) +(?<args>.*)/, text),
       do:
          {:ok, {cmd, args, channel}}
   end
