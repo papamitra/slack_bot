@@ -33,4 +33,11 @@ defmodule SlackBot do
     {:ok, state}
   end
 
+  def get_plugins() do
+    Enum.each(Application.get_env(:slack_bot, :plugins), fn(%{path: path, mod: mod}) ->
+      Code.append_path(path)
+      {:module, atom}= Code.ensure_loaded(mod)
+    end)
+  end
+
 end

@@ -35,3 +35,5 @@ use Mix.Config
 # config :slack_bot, token: :"<api_token>"
 
 import_config "secret.exs"
+
+config :slack_bot, plugins: [%{path: "plugins/echo/_build/#{Mix.env}/lib/echo/ebin", mod: SlackBot.Plugin.Echo}]
