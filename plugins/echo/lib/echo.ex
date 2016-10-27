@@ -1,21 +1,25 @@
 defmodule SlackBot.Plugin.Echo do
   use GenServer
+  use SlackBot.Plugin
 
-  def start(parent) do
-    IO.puts "start echo plugin"
+  require Logger
 
-    GenServer.start_link(__MODULE__, parent)
+  def plugin_init(parent, team_state) do
+    Logger.debug "Echo plugin init"
+
+    {:ok, pid} = GenServer.start_link(__MODULE__, [parent, team_state])
+    {:ok, pid, [:echo]}
   end
 
   # callback function
 
-  def init(parent) do
-    {:ok, %{parent: parent}}
+  def init([parent, team_state]) do
+    {:ok, %{parent: parent, team_state: team_state}}
   end
 
-  def handle_text(pid, text) do
+  def dispatch_command(pid, :echo, args, msg) do
     IO.puts "Echo: handle_text"
-    IO.puts text
+    IO.puts args
   end
 
 end
