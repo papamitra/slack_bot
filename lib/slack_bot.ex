@@ -25,19 +25,22 @@ defmodule SlackBot do
   # callback function
 
   def init(_args) do
-    {:ok, []}
-  end
-
-  def handle_text(text, state) do
-    IO.puts "get text: #{text}"
-    {:ok, state}
-  end
-
-  def get_plugins() do
-    Enum.each(Application.get_env(:slack_bot, :plugins), fn(%{path: path, mod: mod}) ->
+    plugins = Enum.map(Application.get_env(:slack_bot, :plugins), fn(%{path: path, mod: mod}) ->
       Code.append_path(path)
-      {:module, atom}= Code.ensure_loaded(mod)
+      {:module, mod}= Code.ensure_loaded(mod)
+
+      {:ok, pid} = apply(mod, :start, [self])
+      {mod, pid}
     end)
+
+    {:ok, %{plugins: plugins}}
+  end
+
+  def handle_text(text, %{plugins: plugins} = state) do
+    Enum.each(plugins, fn({mod, pid}) ->
+      apply(mod, :handle_text, [pid, text])
+    end)
+    {:ok, state}
   end
 
 end
