@@ -8,7 +8,7 @@ defmodule SlackBot do
     opts = add_proxy_opt([])
     res = HTTPoison.get!("https://slack.com/api/rtm.start?token=#{token}", [], opts)
 
-    team_state = Poison.Parser.parse(res.body, keys: :atoms!)
+    team_state = Poison.decode!(res.body)
 
     %{"url" => url} = team_state
 
@@ -27,7 +27,7 @@ defmodule SlackBot do
         Code.append_path(path)
         {:module, mod}= Code.ensure_loaded(mod)
 
-        {:ok, pid, cmds} = apply(mod, :plugin_init, [self])
+        {:ok, pid, cmds} = apply(mod, :plugin_init, [self, team_state])
         {mod, pid, cmds}
       rescue
         error ->
@@ -40,10 +40,11 @@ defmodule SlackBot do
   end
 
   def handle_text(text, %{plugins: plugins, team_state: team_state} = state) do
-    message = Poison.Parser.parse!(text, keys: :atoms!)
+    message = Poison.decode!(text)
 
     case valid_command?(message, team_state) do
       {:ok, {cmd, args, _channel}} ->
+        Logger.debug "valid message: #{cmd} #{args}"
         Enum.each(plugins, fn({mod, pid, cmds}) ->
           if Enum.any?(cmds, fn c -> Atom.to_string(c) == cmd end) do
             try do
@@ -81,17 +82,18 @@ defmodule SlackBot do
   end
 
   defp valid_command?(message, team_state) do
-    self_id = team_state.self.id
+    self_id = team_state |> Map.get("self") |> Map.get("id")
 
-    with {:ok, "message"} <- Map.fetch(message, :type),
-         :error <- Map.fetch(message, :subtype),
-         :error <- Map.fetch(message, :editted),
-         :error <- Map.fetch(message, :pinned_to),
-         :error <- Map.fetch(message, :is_starred),
-         :error <- Map.fetch(message, :reactions),
-         {:ok, channel} <- Map.fetch(message, :channel),
-         {:ok, text} <- Map.fetch(message, :text),
-         %{"cmd" => cmd, "args" => args} <- Regex.named_captures(~r/<@#{self_id}> (?<cmd>\w.+)(?<args>.*)/, text),
+    with {:ok, "message"} <- Map.fetch(message, "type"),
+         :error <- Map.fetch(message, "subtype"),
+         :error <- Map.fetch(message, "editted"),
+         :error <- Map.fetch(message, "pinned_to"),
+         :error <- Map.fetch(message, "is_starred"),
+         :error <- Map.fetch(message, "reactions"),
+         {:ok, channel} <- Map.fetch(message, "channel"),
+         {:ok, text} <- Map.fetch(message, "text"),
+         %{"cmd" => cmd, "args" => args} <-
+           Regex.named_captures(~r/<@#{self_id}> (?<cmd>\w+)(?<args>.*)/, text),
       do:
          {:ok, {cmd, args, channel}}
   end
