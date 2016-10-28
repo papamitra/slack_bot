@@ -36,6 +36,11 @@ defmodule SlackBot do
       end
     end) |> Enum.filter(fn x -> not is_nil(x) end)
 
+    Enum.map(Application.get_env(:slack_bot, :python_plugins), fn %{path: path} ->
+      {:ok, p} = :python.start([python_path: String.to_charlist(path)])
+      :python.call(p, :pyecho, :plugin_init, [])
+    end)
+
     {:ok, websocket} = WebsocketClient.start_link(self, url)
 
     {:ok, %{plugins: plugins, websocket: websocket, team_state: team_state, last_id: 0}}
