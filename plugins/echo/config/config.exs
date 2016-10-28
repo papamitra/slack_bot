@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :slack_bot, key: :value
+#     config :echo, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:slack_bot, :key)
+#     Application.get_env(:echo, :key)
 #
 # Or configure a 3rd-party app:
 #
@@ -28,12 +28,3 @@ use Mix.Config
 # here (which is why it is important to import them last).
 #
 #     import_config "#{Mix.env}.exs"
-
-# Write API Token to secret.exs.
-#
-# use Mix.Config
-# config :slack_bot, token: :"<api_token>"
-
-import_config "secret.exs"
-
-config :slack_bot, plugins: [%{path: "plugins/echo/_build/#{Mix.env}/lib/echo/ebin", mod: SlackBot.Plugin.Echo}]
