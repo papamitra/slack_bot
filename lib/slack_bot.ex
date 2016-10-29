@@ -3,6 +3,8 @@ defmodule SlackBot do
 
   require Logger
 
+  alias SlackBot.Plugin.PythonPlugin
+
   def rtm_start do
     token = Application.get_env(:slack_bot, :token)
     opts = add_proxy_opt([])
@@ -16,13 +18,14 @@ defmodule SlackBot do
   end
 
   def send_message(pid, msg, channel) do
+    IO.inspect([msg, channel])
     GenServer.cast(pid, {:send, msg, channel})
   end
 
   # callback function
 
   def init([url, team_state]) do
-    plugins = Enum.map(Application.get_env(:slack_bot, :plugins), fn %{path: path, mod: mod} ->
+    plugins = Enum.map(Application.get_env(:slack_bot, :plugins) || [], fn %{path: path, mod: mod} ->
       try do
         Code.append_path(path)
         {:module, mod}= Code.ensure_loaded(mod)
@@ -36,14 +39,22 @@ defmodule SlackBot do
       end
     end) |> Enum.filter(fn x -> not is_nil(x) end)
 
-    Enum.map(Application.get_env(:slack_bot, :python_plugins), fn %{path: path} ->
-      {:ok, p} = :python.start([python_path: String.to_charlist(path)])
-      :python.call(p, :pyecho, :plugin_init, [])
-    end)
+    python_plugins = Enum.map(Application.get_env(:slack_bot, :python_plugins) || [],
+      fn %{path: path, mod: mod, class: class} ->
+        try do
+          {:ok, pid} = PythonPlugin.plugin_init(path, mod, class, self, team_state)
+          {:ok, cmds} = PythonPlugin.target_cmds(pid)
+          {SlackBot.Plugin.PythonPlugin, pid, cmds}
+        rescue
+          error ->
+            Logger.warn "python plugin loading failed: #{mod}.#{class}, #{error}"
+            nil
+        end
+      end) |> Enum.filter(fn x -> not is_nil(x) end)
 
     {:ok, websocket} = WebsocketClient.start_link(self, url)
 
-    {:ok, %{plugins: plugins, websocket: websocket, team_state: team_state, last_id: 0}}
+    {:ok, %{plugins: plugins ++ python_plugins, websocket: websocket, team_state: team_state, last_id: 0}}
   end
 
   def handle_info({:recv_text, text}, %{plugins: plugins, team_state: team_state} = state) do
