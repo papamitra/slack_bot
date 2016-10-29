@@ -10,7 +10,7 @@ defmodule SlackBot.Plugin.PythonPlugin do
   end
 
   def init([path, mod, class, parent, team_state]) do
-    {:ok, python} = :python.start([python_path: String.to_charlist(path), python: 'python3'])
+    {:ok, python} = :python.start([python_path: ['python', String.to_charlist(path)], python: 'python3'])
     pyobj = python |> :python.call(mod, class, [])
 
     team_state_str = team_state |> Poison.encode!
@@ -33,9 +33,8 @@ defmodule SlackBot.Plugin.PythonPlugin do
     %{python: python, pyobj: pyobj, mod: mod, class: class} = state) do
 
     msg_str = msg |> Poison.encode!
-    IO.inspect [cmd, args, msg_str]
-    python |> :python.call(mod, :"#{class}.do_dispatch_command", [pyobj, cmd, args, msg_str])
-    {:noreply, state}
+    pyobj = python |> :python.call(mod, :"#{class}.do_dispatch_command", [pyobj, cmd, args, msg_str])
+    {:noreply, %{state | pyobj: pyobj}}
   end
 
   def handle_call(:target_cmds, _from, %{python: python, pyobj: pyobj, mod: mod, class: class} = state) do
