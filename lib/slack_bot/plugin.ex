@@ -19,11 +19,11 @@ defmodule SlackBot.Plugin do
         {:ok, nil, []}
       end
 
-      def dispatch_command(_cmd, _args, _msg) do
+      def dispatch_command(_pid, _cmd, _args, _msg) do
         :ok
       end
 
-      defoverridable [plugin_init: 2, dispatch_command: 3]
+      defoverridable [plugin_init: 2, dispatch_command: 4]
     end
   end
 

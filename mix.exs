@@ -30,7 +30,8 @@ defmodule SlackBot.Mixfile do
     [
       {:httpoison, "~> 0.9.0"},
       {:poison, "~> 3.0"},
-      {:websocket_client, git: "https://github.com/papamitra/websocket_client.git"}
+      {:websocket_client, git: "https://github.com/papamitra/websocket_client.git"},
+      {:erlport, github: "hdima/erlport"}
     ]
   end
 end
