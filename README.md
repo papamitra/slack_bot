@@ -1,24 +1,26 @@
 # SlackBot
 
-**TODO: Add description**
+ElixirおよびPythonプラグインによる拡張可能なSlack Bot
 
-## Installation
+## 実行
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+```bash
+$ git clonse git@github.com:papamitra/slack_bot.git
+$ cd slack_bot
+$ cat > config/secret.exs
+use Mix.Config
+config :slack_bot, token: :"<your slack bot api token>"
+^C
+$ mix compile
+$ mix run --no-halt
+```
 
-  1. Add `slack_bot` to your list of dependencies in `mix.exs`:
+## プラグイン
 
-    ```elixir
-    def deps do
-      [{:slack_bot, "~> 0.1.0"}]
-    end
-    ```
+### Python
 
-  2. Ensure `slack_bot` is started before your application:
+TODO
 
-    ```elixir
-    def application do
-      [applications: [:slack_bot]]
-    end
-    ```
+### Elixir
 
+TODO

@@ -14,7 +14,8 @@ defmodule SlackBot.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :httpoison, :websocket_client]]
+    [applications: [:logger, :httpoison, :websocket_client],
+     mod: {SlackBot, []}]
   end
 
   # Dependencies can be Hex packages:

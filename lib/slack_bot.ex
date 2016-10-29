@@ -5,7 +5,7 @@ defmodule SlackBot do
 
   alias SlackBot.Plugin.PythonPlugin
 
-  def rtm_start do
+  def start(_type, _args) do
     token = Application.get_env(:slack_bot, :token)
     opts = add_proxy_opt([])
     res = HTTPoison.get!("https://slack.com/api/rtm.start?token=#{token}", [], opts)
