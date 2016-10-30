@@ -1,4 +1,5 @@
 defmodule SlackBot.Plugin do
+  use GenServer
 
   @doc """
   Called when the bot load this plugin.
@@ -15,7 +16,7 @@ defmodule SlackBot.Plugin do
       @behaviour SlackBot.Plugin
 
       @doc false
-      def plugin_init(_parent, _team_state) do
+      def plugin_init(_team_state) do
         {:ok, nil, []}
       end
 
@@ -23,8 +24,30 @@ defmodule SlackBot.Plugin do
         :ok
       end
 
-      defoverridable [plugin_init: 2, dispatch_command: 4]
+      defoverridable [plugin_init: 1, dispatch_command: 4]
     end
+  end
+
+  def start_link(path, mod, team_state) do
+    GenServer.start_link(__MODULE__, [path, mod, team_state])
+  end
+
+  # callback funtion
+
+  def init([path, mod, team_state]) do
+    Code.append_path(path)
+    {:module, mod}= Code.ensure_loaded(mod)
+
+    {:ok, pid, cmds} = apply(mod, :plugin_init, [team_state])
+    {:ok, %{mod: mod, pid: pid, cmds: cmds}}
+  end
+
+  def handle_info({:command, cmd, args, msg}, %{mod: mod, pid: pid, cmds: cmds} = state) do
+    if Enum.any?(cmds, fn c -> Atom.to_string(c) == cmd end) do
+      apply(mod, :dispatch_command, [pid, String.to_atom(cmd), args, msg])
+    end
+
+    {:noreply, state}
   end
 
 end
