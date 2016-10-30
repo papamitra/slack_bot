@@ -3,8 +3,6 @@ defmodule SlackBot do
 
   require Logger
 
-  alias SlackBot.Plugin.PythonPlugin
-
   def start(_type, _args) do
     token = Application.get_env(:slack_bot, :token)
     opts = add_proxy_opt([])
@@ -14,65 +12,29 @@ defmodule SlackBot do
 
     %{"url" => url} = team_state
 
-    GenServer.start_link(__MODULE__, [url, team_state])
+    GenServer.start_link(__MODULE__, [url, team_state], name: __MODULE__)
   end
 
-  def send_message(pid, msg, channel) do
+  def send_message(msg, channel) do
     IO.inspect([msg, channel])
-    GenServer.cast(pid, {:send, msg, channel})
+    GenServer.cast(__MODULE__, {:send, msg, channel})
   end
 
   # callback function
 
   def init([url, team_state]) do
-    plugins = Enum.map(Application.get_env(:slack_bot, :plugins) || [], fn %{path: path, mod: mod} ->
-      try do
-        Code.append_path(path)
-        {:module, mod}= Code.ensure_loaded(mod)
-
-        {:ok, pid, cmds} = apply(mod, :plugin_init, [self, team_state])
-        {mod, pid, cmds}
-      rescue
-        error ->
-          Logger.warn "plugin loading failed: #{mod}, #{error}"
-          nil
-      end
-    end) |> Enum.filter(fn x -> not is_nil(x) end)
-
-    python_plugins = Enum.map(Application.get_env(:slack_bot, :python_plugins) || [],
-      fn %{path: path, mod: mod, class: class} ->
-        try do
-          {:ok, pid} = PythonPlugin.plugin_init(path, mod, class, self, team_state)
-          {:ok, cmds} = PythonPlugin.target_cmds(pid)
-          {SlackBot.Plugin.PythonPlugin, pid, cmds}
-        rescue
-          error ->
-            Logger.warn "python plugin loading failed: #{mod}.#{class}, #{error}"
-            nil
-        end
-      end) |> Enum.filter(fn x -> not is_nil(x) end)
-
+    SlackBot.PluginsSupervisor.start_link(team_state)
     {:ok, websocket} = WebsocketClient.start_link(self, url)
-
-    {:ok, %{plugins: plugins ++ python_plugins, websocket: websocket, team_state: team_state, last_id: 0}}
+    {:ok, %{websocket: websocket, team_state: team_state, last_id: 0}}
   end
 
-  def handle_info({:recv_text, text}, %{plugins: plugins, team_state: team_state} = state) do
+  def handle_info({:recv_text, text}, %{team_state: team_state} = state) do
     message = Poison.decode!(text)
 
     case valid_command?(message, team_state) do
       {:ok, {cmd, args, _channel}} ->
         Logger.debug "valid message: #{cmd} #{args}"
-        Enum.each(plugins, fn({mod, pid, cmds}) ->
-          if Enum.any?(cmds, fn c -> Atom.to_string(c) == cmd end) do
-            try do
-              apply(mod, :dispatch_command, [pid, String.to_atom(cmd), args, message])
-            rescue
-              error ->
-                Logger.warn "#{mod}.handle_text failed: #{error}"
-            end
-          end
-        end)
+        send(SlackBot.PluginServer, {:recv_command, cmd, args, message})
       _ ->
         :noop
     end

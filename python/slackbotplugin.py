@@ -7,8 +7,7 @@ class SlackBotPlugin(object):
     def __init__(self, cmds):
         self.cmds = cmds
 
-    def plugin_init(self, slackbot, team_state):
-        self.slackbot = slackbot
+    def plugin_init(self, team_state):
         self.team_state = json.loads(team_state.decode('utf-8'))
         return self
 
@@ -21,4 +20,5 @@ class SlackBotPlugin(object):
         return self
 
     def send_message(self, msg, channel):
-        call(Atom(b"Elixir.SlackBot"), Atom(b"send_message"), [self.slackbot, msg.encode('utf-8'), channel.encode('utf-8')])
+        call(Atom(b"Elixir.SlackBot"), Atom(b"send_message"),
+             [msg.encode('utf-8'), channel.encode('utf-8')])
