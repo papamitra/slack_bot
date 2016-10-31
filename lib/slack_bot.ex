@@ -16,7 +16,6 @@ defmodule SlackBot do
   end
 
   def send_message(msg, channel) do
-    IO.inspect([msg, channel])
     GenServer.cast(__MODULE__, {:send, msg, channel})
   end
 

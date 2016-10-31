@@ -11,7 +11,8 @@ defmodule SlackBot.PluginsSupervisor do
     ]
 
     opts = [
-      strategy: :one_for_one
+      strategy: :one_for_one,
+      max_restarts: 0
     ]
 
     supervise(children, opts)

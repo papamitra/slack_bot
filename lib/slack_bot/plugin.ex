@@ -35,11 +35,8 @@ defmodule SlackBot.Plugin do
   # callback funtion
 
   def init([path, mod, team_state]) do
-    Code.append_path(path)
-    {:module, mod}= Code.ensure_loaded(mod)
-
-    {:ok, pid, cmds} = apply(mod, :plugin_init, [team_state])
-    {:ok, %{mod: mod, pid: pid, cmds: cmds}}
+    send(self, {:plugin_init, path, mod, team_state})
+    {:ok, nil}
   end
 
   def handle_info({:command, cmd, args, msg}, %{mod: mod, pid: pid, cmds: cmds} = state) do
@@ -48,6 +45,17 @@ defmodule SlackBot.Plugin do
     end
 
     {:noreply, state}
+  end
+
+  def handle_info({:plugin_init, path, mod, team_state}, _state) do
+    Code.append_path(path)
+    {:module, mod}= Code.ensure_loaded(mod)
+
+    {:ok, pid, cmds} = apply(mod, :plugin_init, [team_state])
+
+    SlackBot.PluginServer.register_plugin_cmds(self, cmds)
+
+    {:noreply, %{mod: mod, pid: pid, cmds: cmds}}
   end
 
 end
