@@ -7,12 +7,12 @@ ElixirおよびPythonプラグインによる拡張可能なSlack Bot
 ```bash
 $ git clonse https://github.com/papamitra/slack_bot.git
 $ cd slack_bot
-$ mix deps.get
-$ make -C deps/erlport/priv/python3
 $ cat > config/secret.exs
 use Mix.Config
 config :slack_bot, token: :"<your slack bot api token>"
 ^C
+$ mix deps.get
+$ make -C deps/erlport/priv/python3
 
 $ cd plugins/echo
 $ mix deps.get
