@@ -4,10 +4,7 @@ defmodule SlackBot do
   require Logger
 
   def start(_type, _args) do
-    token = Application.get_env(:slack_bot, :token)
-    opts = add_proxy_opt([])
-    res = HTTPoison.get!("https://slack.com/api/rtm.start?token=#{token}", [], opts)
-
+    {:ok, res} = SlackBot.WebAPI.get(:"rtm.start")
     team_state = Poison.decode!(res.body)
 
     %{"url" => url} = team_state
@@ -29,6 +26,7 @@ defmodule SlackBot do
 
   def handle_info({:recv_text, text}, %{team_state: team_state} = state) do
     message = Poison.decode!(text)
+    Logger.debug "incomming message: #{inspect message}"
 
     case valid_command?(message, team_state) do
       {:ok, {cmd, args, _channel}} ->
@@ -49,17 +47,6 @@ defmodule SlackBot do
   end
 
   # private
-
-  defp add_proxy_opt(acc) do
-    https_proxy = System.get_env("https_proxy")
-    case  (https_proxy || "") |> URI.parse do
-      %URI{host: proxy_host} when not is_nil(proxy_host) ->
-        Logger.info "use proxy: #{https_proxy}"
-        [{:proxy, https_proxy} | acc]
-      _ ->
-        acc
-    end
-  end
 
   defp valid_command?(message, team_state) do
     self_id = team_state |> Map.get("self") |> Map.get("id")
