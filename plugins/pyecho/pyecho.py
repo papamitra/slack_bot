@@ -6,4 +6,4 @@ class PyEcho(SlackBotPlugin):
         super(PyEcho, self).__init__(["pyecho"])
 
     def dispatch_command(self, cmd, args, msg):
-        self.send_message(args, msg["channel"])
+        self.send_direct_message(args, msg["user"])

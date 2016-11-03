@@ -16,12 +16,17 @@ defmodule SlackBot do
     GenServer.cast(__MODULE__, {:send, msg, channel})
   end
 
+  def send_direct_message(msg, user) do
+    GenServer.cast(__MODULE__, {:send_dm, msg, user})
+  end
+
   # callback function
 
   def init([url, team_state]) do
     SlackBot.PluginsSupervisor.start_link(team_state)
+    dm_channels = :ets.new(:dm_channels, [:set, :private])
     {:ok, websocket} = WebsocketClient.start_link(self, url)
-    {:ok, %{websocket: websocket, team_state: team_state, last_id: 0}}
+    {:ok, %{websocket: websocket, team_state: team_state, last_id: 0, dm_channels: dm_channels}}
   end
 
   def handle_info({:recv_text, text}, %{team_state: team_state} = state) do
@@ -46,6 +51,18 @@ defmodule SlackBot do
     {:noreply, %{state | last_id: last_id + 1}}
   end
 
+  def handle_cast({:send_dm, msg, user}, %{websocket: websocket, last_id: last_id, dm_channels: dm_channels} = state) do
+    case get_dm_channel(user, dm_channels) do
+      {:ok, channel} ->
+        payload = Poison.encode!(%{id: last_id + 1, type: "message", text: msg, channel: channel})
+        websocket |> WebsocketClient.send({:text, payload})
+      {:error, reason} ->
+        Logger.warn "direct message to #{user} failed: #{reason}"
+    end
+
+    {:noreply, state}
+  end
+
   # private
 
   defp valid_command?(message, team_state) do
@@ -64,4 +81,34 @@ defmodule SlackBot do
       do:
          {:ok, {cmd, args, channel}}
   end
+
+  defp get_dm_channel(user, dm_channels) do
+    case :ets.lookup(dm_channels, user) do
+      [{^user, channel} | _] ->
+        {:ok, channel}
+      _ ->
+        case open_dm_channel(user) do
+          {:ok, channel} ->
+            :ets.insert(dm_channels, {user, channel})
+            {:ok, channel}
+          error ->
+            error
+        end
+    end
+  end
+
+  defp open_dm_channel(user) do
+    case SlackBot.WebAPI.get("im.open", %{user: user}) do
+      {:ok, res} ->
+        case Poison.decode(res.body) do
+          {:ok, %{"channel" => %{"id" => channel}}} ->
+            {:ok, channel}
+          _ ->
+            {:error, "invalid response #{inspect res}"}
+        end
+      _ ->
+        {:error, "im.open #{user} failed"}
+    end
+  end
+
 end

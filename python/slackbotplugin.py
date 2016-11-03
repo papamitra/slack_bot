@@ -22,3 +22,7 @@ class SlackBotPlugin(object):
     def send_message(self, msg, channel):
         call(Atom(b"Elixir.SlackBot"), Atom(b"send_message"),
              [msg.encode('utf-8'), channel.encode('utf-8')])
+
+    def send_direct_message(self, msg, user):
+        call(Atom(b"Elixir.SlackBot"), Atom(b"send_direct_message"),
+             [msg.encode('utf-8'), user.encode('utf-8')])
