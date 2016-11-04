@@ -38,7 +38,7 @@ defmodule SlackBot.Plugin.PythonPlugin do
 
     cmds = python |> :python.call(mod, :"#{class}.target_cmds", [pyobj])
 
-    SlackBot.PluginServer.register_plugin_cmds(self, cmds)
+    send(SlackBot.PluginServer, {:register_plugin, self, cmds})
 
     {:noreply, %{python: python, pyobj: pyobj, mod: mod, class: class, cmds: cmds, team_state: team_state}}
   end

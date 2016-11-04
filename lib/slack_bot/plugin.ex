@@ -53,7 +53,7 @@ defmodule SlackBot.Plugin do
 
     {:ok, pid, cmds} = apply(mod, :plugin_init, [team_state])
 
-    SlackBot.PluginServer.register_plugin_cmds(self, cmds)
+    send(SlackBot.PluginServer, {:register_plugin, self, cmds})
 
     {:noreply, %{mod: mod, pid: pid, cmds: cmds}}
   end
