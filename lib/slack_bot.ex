@@ -68,18 +68,24 @@ defmodule SlackBot do
   defp valid_command?(message, team_state) do
     self_id = team_state |> Map.get("self") |> Map.get("id")
 
+    # TODO: exclude old message
     with {:ok, "message"} <- Map.fetch(message, "type"),
          :error <- Map.fetch(message, "subtype"),
-         :error <- Map.fetch(message, "editted"),
-         :error <- Map.fetch(message, "pinned_to"),
-         :error <- Map.fetch(message, "is_starred"),
-         :error <- Map.fetch(message, "reactions"),
          {:ok, channel} <- Map.fetch(message, "channel"),
          {:ok, text} <- Map.fetch(message, "text"),
          %{"cmd" => cmd, "args" => args} <-
-           Regex.named_captures(~r/<@#{self_id}> (?<cmd>\w+) +(?<args>.*)/, text),
+           parse_with_mention(self_id, text) || parse_in_dm(channel, text),
       do:
          {:ok, {cmd, args, channel}}
+  end
+
+  defp parse_with_mention(self_id, text) do
+    Regex.named_captures(~r/<@#{self_id}> (?<cmd>\w+)( +(?<args>.*))?/, text)
+  end
+
+  defp parse_in_dm(channel, text) do
+    String.starts_with?(channel, "D") &&
+      Regex.named_captures(~r/(?<cmd>\w+)( +(?<args>.*))?/, text)
   end
 
   defp get_dm_channel(user, dm_channels) do
