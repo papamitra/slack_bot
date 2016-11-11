@@ -1,4 +1,4 @@
-defmodule SlackBot.PluginsSupervisor do
+defmodule SlackBot.PluginSupervisor do
   use Supervisor
 
   def start_link(team_state) do
@@ -7,11 +7,11 @@ defmodule SlackBot.PluginsSupervisor do
 
   def init(team_state) do
     children = [
-      worker(SlackBot.PluginServer, [self, team_state])
+      worker(SlackBot.PluginServer, [team_state])
     ]
 
     opts = [
-      strategy: :one_for_one,
+      strategy: :one_for_all,
       max_restarts: 0
     ]
 

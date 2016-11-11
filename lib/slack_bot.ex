@@ -23,7 +23,7 @@ defmodule SlackBot do
   # callback function
 
   def init([url, team_state]) do
-    SlackBot.PluginsSupervisor.start_link(team_state)
+    SlackBot.PluginSupervisor.start_link(team_state)
     dm_channels = :ets.new(:dm_channels, [:set, :private])
     {:ok, websocket} = WebsocketClient.start_link(self, url)
     {:ok, %{websocket: websocket, team_state: team_state, last_id: 0, dm_channels: dm_channels}}

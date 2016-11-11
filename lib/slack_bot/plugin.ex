@@ -1,6 +1,8 @@
 defmodule SlackBot.Plugin do
   use GenServer
 
+  require Logger
+
   @doc """
   Called when the bot load this plugin.
   """
@@ -49,7 +51,14 @@ defmodule SlackBot.Plugin do
 
   def handle_info({:plugin_init, path, mod, team_state}, _state) do
     Code.append_path(path)
-    {:module, mod}= Code.ensure_loaded(mod)
+
+    case Code.ensure_loaded(mod) do
+      {:module, mod} ->
+        Logger.debug "module load succeeded: #{mod}"
+      _ ->
+        Logger.warn "module load failed: #{mod}"
+        exit(:load_failed)
+    end
 
     {:ok, pid, cmds} = apply(mod, :plugin_init, [team_state])
 
