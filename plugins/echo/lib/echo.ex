@@ -1,8 +1,10 @@
-defmodule SlackBot.Plugin.Echo do
+defmodule SlackBotPlugin.Echo do
   use GenServer
   use SlackBot.Plugin
 
   require Logger
+
+  @slackbot Application.get_env(:echo, :slackbot)
 
   def plugin_init(team_state) do
     Logger.debug "Echo plugin init"
@@ -22,7 +24,7 @@ defmodule SlackBot.Plugin.Echo do
   end
 
   def handle_cast({:send, args, msg}, state) do
-    SlackBot.send_message(args, Map.get(msg, "channel"))
+    @slackbot.send_message(args, Map.get(msg, "channel"))
     {:noreply, state}
   end
 

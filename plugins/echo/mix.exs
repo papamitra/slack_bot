@@ -28,7 +28,7 @@ defmodule SlackBot.Plugin.Echo.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:slack_bot, path: "../../"}
+      {:slack_bot_plugin, github: "papamitra/slack_bot_plugin"}
     ]
   end
 end

@@ -15,12 +15,12 @@ defmodule SlackBot.PluginServer do
 
     Enum.each(Application.get_env(:slack_bot, :plugins) || [],
       fn %{path: path, mod: mod, app: app} ->
-        send(self, {:create_plugin, path, mod, app, team_state})
+        send(self, {:create_plugin, Path.expand(path), mod, app, team_state})
       end)
 
     Enum.each(Application.get_env(:slack_bot, :python_plugins) || [],
       fn %{path: path, mod: mod, class: class} ->
-        send(self, {:create_python_plugin, path, mod, class, team_state})
+        send(self, {:create_python_plugin, Path.expand(path), mod, class, team_state})
       end)
 
     {:ok, %{elixir_plugins_sup: elixir_plugins_sup,

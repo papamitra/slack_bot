@@ -3,6 +3,8 @@ defmodule SlackBot.Plugin.PythonPlugin do
 
   require Logger
 
+  @python_path Path.expand("python") |> String.to_charlist
+
   def start_link(path, mod, class, team_state) do
     Logger.debug "PythonPlugin plugin_init: #{path} #{mod} #{class}"
 
@@ -30,7 +32,7 @@ defmodule SlackBot.Plugin.PythonPlugin do
   end
 
   def handle_info({:plugin_init, path, mod, class, team_state}, _state) do
-    {:ok, python} = :python.start([python_path: ['python', String.to_charlist(path)], python: 'python3'])
+    {:ok, python} = :python.start([python_path: [@python_path, String.to_charlist(path)], python: 'python3'])
     pyobj = python |> :python.call(mod, class, [])
 
     team_state_str = team_state |> Poison.encode!

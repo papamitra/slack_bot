@@ -1,6 +1,8 @@
 defmodule SlackBot do
   use GenServer
 
+  @behaviour SlackBot.Behaviour
+
   require Logger
 
   def start(_type, _args) do
