@@ -14,8 +14,8 @@ defmodule SlackBot.PluginServer do
     {:ok, python_plugins_sup} = SlackBot.PythonPluginsSupervisor.start_link()
 
     Enum.each(Application.get_env(:slack_bot, :plugins) || [],
-      fn %{path: path, mod: mod} ->
-        send(self, {:create_plugin, path, mod, team_state})
+      fn %{path: path, mod: mod, app: app} ->
+        send(self, {:create_plugin, path, mod, app, team_state})
       end)
 
     Enum.each(Application.get_env(:slack_bot, :python_plugins) || [],
@@ -30,9 +30,9 @@ defmodule SlackBot.PluginServer do
 
   # callback function
 
-  def handle_info({:create_plugin, path, mod, team_state}, %{elixir_plugins_sup: sup} = state) do
+  def handle_info({:create_plugin, path, mod, app, team_state}, %{elixir_plugins_sup: sup} = state) do
     Logger.debug "create plugin: #{mod}"
-    Supervisor.start_child(sup, [path, mod, team_state])
+    Supervisor.start_child(sup, [path, mod, app, team_state])
     {:noreply, state}
   end
 

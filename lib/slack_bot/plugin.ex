@@ -6,7 +6,7 @@ defmodule SlackBot.Plugin do
   @doc """
   Called when the bot load this plugin.
   """
-  @callback plugin_init(pid, any) :: {:ok, pid, [atom]}
+  @callback plugin_init(any) :: {:ok, pid, [atom]}
 
   @doc """
   Called when the bot dispatch command.
@@ -30,14 +30,14 @@ defmodule SlackBot.Plugin do
     end
   end
 
-  def start_link(path, mod, team_state) do
-    GenServer.start_link(__MODULE__, [path, mod, team_state])
+  def start_link(path, mod, app, team_state) do
+    GenServer.start_link(__MODULE__, [path, mod, app, team_state])
   end
 
   # callback funtion
 
-  def init([path, mod, team_state]) do
-    send(self, {:plugin_init, path, mod, team_state})
+  def init([path, mod, app, team_state]) do
+    send(self, {:plugin_init, path, mod, app, team_state})
     {:ok, nil}
   end
 
@@ -49,8 +49,11 @@ defmodule SlackBot.Plugin do
     {:noreply, state}
   end
 
-  def handle_info({:plugin_init, path, mod, team_state}, _state) do
-    Code.append_path(path)
+  def handle_info({:plugin_init, path, mod, app, team_state}, _state) do
+
+    Code.append_path(path <> "/_build/#{Mix.env}/lib/#{app}/ebin") # FIXME: code path
+
+    :ok = Application.load(app)
 
     case Code.ensure_loaded(mod) do
       {:module, mod} ->
@@ -64,7 +67,7 @@ defmodule SlackBot.Plugin do
 
     send(SlackBot.PluginServer, {:register_plugin, self, cmds})
 
-    {:noreply, %{mod: mod, pid: pid, cmds: cmds}}
+    {:noreply, %{}}
   end
 
 end
