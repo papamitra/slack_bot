@@ -7,11 +7,12 @@ defmodule SlackBot.PluginSupervisor do
 
   def init(team_state) do
     children = [
-      worker(SlackBot.PluginServer, [team_state])
+      worker(SlackBot.PluginServer, [team_state]),
+      worker(SlackBot.ElixirPluginLoader, [], [restart: :permanent]),
     ]
 
     opts = [
-      strategy: :one_for_all,
+      strategy: :one_for_one,
       max_restarts: 0
     ]
 
