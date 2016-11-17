@@ -20,6 +20,7 @@ defmodule SlackBot.ElixirPluginLoader do
   def handle_call({path, mod, app}, _from, state) do
     compile_path = Mix.Project.in_project(app, path, [], fn _ ->
       Mix.Tasks.Loadconfig.run([])
+      Mix.Tasks.Compile.run([])
       Mix.Tasks.Deps.Loadpaths.run([])
       Mix.Project.compile_path
     end)
