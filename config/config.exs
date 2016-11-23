@@ -36,6 +36,6 @@ use Mix.Config
 
 import_config "secret.exs"
 
-config :slack_bot, plugins: [%{path: "plugins/echo/_build/#{Mix.env}/lib/echo/ebin", mod: SlackBot.Plugin.Echo}]
+config :slack_bot, plugins: [%{path: "/home/insight/work/elixir/slack_bot/plugins/echo", mod: SlackBotPlugin.Echo, app: :echo}]
 
 config :slack_bot, python_plugins: [%{path: "plugins/pyecho", mod: :pyecho, class: :PyEcho}]
